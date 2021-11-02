@@ -21,6 +21,25 @@ async def send_message(chat_id, msg_str, lang, last_message_id=None, args=None, 
         return None
 
 
+async def send_photo(chat_id, photo, caption=None, parse_mode=None, caption_entities=None, disable_notification=None,
+                     reply_to_message_id=None,
+                     allow_sending_without_reply=None, reply_markup=None):
+    try:
+        await bot.send_photo(chat_id, photo, caption, parse_mode, caption_entities, disable_notification,
+                             reply_to_message_id, allow_sending_without_reply, reply_markup)
+    except Exception as err:
+        print('[ERROR] in send_photo\nException: {}\n\n'.format(err))
+        return None
+
+
+async def delete_message(chat_id, message_id):
+    try:
+        await bot.delete_message(chat_id, message_id)
+    except Exception as err:
+        print('[ERROR] in delete_message\nException: {}\n\n'.format(err))
+        return None
+
+
 async def get_chat_member(channel_id, chat_id):
     try:
         user_following_info = await bot.get_chat_member(channel_id, chat_id)

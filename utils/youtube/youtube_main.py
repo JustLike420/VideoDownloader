@@ -1,5 +1,7 @@
 from pytube import YouTube
 
+from api.video_api import video_api
+
 
 # from pytube import YouTube
 # YouTube('https://youtu.be/2lAe1cqCOXo').streams.first().download()
@@ -9,7 +11,20 @@ from pytube import YouTube
 
 async def get_youtube_url(link):
     try:
-        link = YouTube(link).streams.filter(progressive=True, file_extension='mp4').get_highest_resolution().url
-        return link, None
-    except:
+        youtube = YouTube(link)
+        video_api["thumbnail_url"] = youtube.thumbnail_url
+        video_api["title"] = youtube.title
+
+        youtube = youtube.streams.filter(progressive=True, file_extension='mp4').desc().fmt_streams
+        for data in youtube:
+            video_api["resolutions"].append(
+                {
+                    "resolution": data.resolution,
+                    "url": data.url,
+                }
+            )
+
+        return video_api, None
+    except Exception as err:
+        print('[ERROR] in button_resolutions\nException: {}\n\n'.format(err))
         return None, "failed_get_link"

@@ -9,4 +9,3 @@ async def match_urls(link):
         return "VK"
     if "youtube" in domain:
         return "YOUTUBE"
-
