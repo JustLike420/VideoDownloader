@@ -1,7 +1,7 @@
 import asyncio
 
 import aiohttp
-from urllib.parse import urlencode
+
 from data.config import HEADERS
 
 VIDEO_REQUEST_URL = 'https://api.tiktokv.com/aweme/v1/multi/aweme/detail/?aweme_ids=%5B{}%5D'
@@ -12,36 +12,36 @@ TIKTOK_LIST = ['tiktok.com/@', 'likee.video', 'vm.tiktok.com', 'likee.com/v', 'm
 # Function to get tiktok video and audio url
 async def get_tik_tok_url(link):
     async with aiohttp.ClientSession() as session:
-        video_id, error_type = await get_tik_tok_video_id(session, link)
+        video_id, error = await get_tik_tok_video_id(session, link)
         if video_id is None:
-            return video_id, error_type
+            return video_id, error
 
-        video_url, error_type = await get_tik_tok_video(session, video_id)
-        return video_url, error_type
+        video_url, error = await get_tik_tok_video(session, video_id)
+        return video_url, error
 
 
 async def get_tik_tok_video_id(session, link):
     try:
-        async with session.get(link, headers=HEADERS, allow_redirects=True) as get_request:
-            redirected_url = str(get_request.url)
-            if redirected_url in ['https://www.tiktok.com']:
-                return None, 'wrong'
+        get_request = await session.get(link, headers=HEADERS, allow_redirects=True)
+        redirected_url = str(get_request.url)
+        if redirected_url in ['https://www.tiktok.com']:
+            return None, 'wrong'
 
-            # Check if the link is user url
-            if '@' in redirected_url and all(x not in redirected_url for x in ['/video/', '/v/', '/music/']):
-                return None, 'wrong'
+        # Check if the link is user url
+        if '@' in redirected_url and all(x not in redirected_url for x in ['/video/', '/v/', '/music/']):
+            return None, 'wrong'
 
-            # Check if the link is music url
-            if '/music/' in redirected_url:
-                return None, 'audio-bot'
+        # Check if the link is music url
+        if '/music/' in redirected_url:
+            return None, 'audio-bot'
 
-            # Get video id by redirect url
-            if 'com/v/' in redirected_url:
-                video_id = redirected_url.split('/v/')[1].split('.')[0].replace('/', '')
-            else:
-                video_id = redirected_url.split('/video/')[1].split('?')[0].replace('/', '')
+        # Get video id by redirect url
+        if 'com/v/' in redirected_url:
+            video_id = redirected_url.split('/v/')[1].split('.')[0].replace('/', '')
+        else:
+            video_id = redirected_url.split('/video/')[1].split('?')[0].replace('/', '')
 
-            return video_id, session
+        return video_id, None
 
     except Exception as err:
         print(err, '[ERROR] in get_tik_tok_video_id - ', link)
@@ -55,23 +55,22 @@ async def get_tik_tok_video_id(session, link):
 async def get_tik_tok_video(session, video_id):
     try:
         url_to_request = VIDEO_REQUEST_URL.format(video_id)
-        async with session.get(url_to_request) as get_request:
-            response_json = await get_request.json()
+        get_request = await session.get(url_to_request)
+        response_json = await get_request.json()
 
-            if response_json is not None and 'aweme_details' in response_json.keys():
-                video_info = response_json['aweme_details'][0]['video']
-                if video_info['bit_rate'] and 'play_addr' in video_info['bit_rate'][0]:
-                    video_urls = video_info['bit_rate'][0]['play_addr']['url_list']
-                else:
-                    video_urls = video_info['play_addr']['url_list']
+        if response_json is not None and 'aweme_details' in response_json.keys():
+            video_info = response_json['aweme_details'][0]['video']
+            if video_info['bit_rate'] and 'play_addr' in video_info['bit_rate'][0]:
+                video_urls = video_info['bit_rate'][0]['play_addr']['url_list']
+            else:
+                video_urls = video_info['play_addr']['url_list']
 
-                video_url = video_urls[0]
-                return video_url, session
+            video_url = video_urls[0]
+            return video_url, None
 
     except Exception as err:
         print(err, 'Error in get_tik_tok_video\n')
-
-    return None, None
+        return None, "non_error"
 
 
 ########################################################################################################################
