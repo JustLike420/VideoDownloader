@@ -25,8 +25,8 @@ async def send_photo(chat_id, photo, caption=None, parse_mode=None, caption_enti
                      reply_to_message_id=None,
                      allow_sending_without_reply=None, reply_markup=None):
     try:
-        await bot.send_photo(chat_id, photo, caption, parse_mode, caption_entities, disable_notification,
-                             reply_to_message_id, allow_sending_without_reply, reply_markup)
+        return await bot.send_photo(chat_id, photo, caption, parse_mode, caption_entities, disable_notification,
+                                    reply_to_message_id, allow_sending_without_reply, reply_markup)
     except Exception as err:
         print('[ERROR] in send_photo\nException: {}\n\n'.format(err))
         return None
@@ -80,3 +80,9 @@ async def user_msg(message_str, lang, args=None):
 
     # correct_user_message = user_message.replace('_', '\_')
     return user_message
+
+
+async def get_link_via_resolution(data, callback):
+    for info in data:
+        if info["resolution"] in callback:
+            return info["url"]

@@ -1,36 +1,41 @@
 import asyncio
-import json
+
 from aiogram import types
-from aiogram.types import Message
 from aiogram.dispatcher import FSMContext
+from aiogram.types import Message
 
 from keyboards.inline import button_resolutions
 from main import dp
-from utils.helpers import send_message
+from utils.helpers import send_message, send_video, delete_message, get_link_via_resolution
 from utils.match_urls import match_urls
 from utils.tiktok.tiktok_helpers import get_tik_tok_url
 from utils.vk.vk_main import get_vk_video
 from utils.youtube.youtube_main import get_youtube_url
 
 
-@dp.callback_query_handler(text_contains='resolution_')
-@dp.throttled(rate=15)  # Prevent flooding
+@dp.callback_query_handler(lambda call: call.data.startswith('resolution_'))
+@dp.throttled(rate=3)  # Prevent flooding
 async def chat_messages(query: types.CallbackQuery, state: FSMContext):
-    lang = "ru"
-    answer_data = query.data
-    async with state.proxy() as data:
-        t = json.loads(data["data"])
-    print()
-    await state.finish()
-    # if answer_data.startswith("url_"):
-    #     await send_message(message.chat.id, "send_video", lang, last_message.message_id)
-    #
-    #     if await send_video(message.chat.id, link, lang):
-    #         await send_message(message.chat.id, "send_video_complete", lang, last_message.message_id)
-    #     else:
-    #         await asyncio.sleep(.5)
-    #         await send_message(message.chat.id, "failed_send_video", lang, last_message.message_id)
-    #         await send_message(message.chat.id, "send_video_link", lang, args=link)
+    try:
+        if await state.get_data():
+            async with state.proxy() as data:
+                link = await get_link_via_resolution(data["video_data"], query.data)
+                user = data["user_data"]
+            lang = user["lang"]
+            chat_id = user["chat_id"]
+            last_message_id = user["last_message_id"]
+            await state.finish()
+            await delete_message(chat_id, last_message_id)
+            last_message_id = await send_message(chat_id, "send_video", lang)
+
+            if await send_video(chat_id, link, lang):
+                await send_message(user["chat_id"], "send_video_complete", lang, last_message_id.message_id)
+            else:
+                await asyncio.sleep(.5)
+                await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id)
+                await send_message(chat_id, "send_video_link", lang, args=link)
+    except Exception as err:
+        print('[ERROR] in chat_messages\nException: {}\n\n'.format(err))
 
 
 @dp.message_handler()  # Answer to all messages
