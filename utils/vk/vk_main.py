@@ -7,7 +7,7 @@ import requests
 session = AsyncHTMLSession()
 
 
-async def get_vk_video(link: str):
+async def get_vk_data(link: str):
     try:
         link = urlparse(link)
         query = parse_qs(link.query)

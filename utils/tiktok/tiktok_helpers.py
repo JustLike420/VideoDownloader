@@ -1,7 +1,9 @@
 import asyncio
+import copy
 
 import aiohttp
 
+from api.video_api import video_api
 from data.config import HEADERS
 
 VIDEO_REQUEST_URL = 'https://api.tiktokv.com/aweme/v1/multi/aweme/detail/?aweme_ids=%5B{}%5D'
@@ -10,14 +12,14 @@ TIKTOK_LIST = ['tiktok.com/@', 'likee.video', 'vm.tiktok.com', 'likee.com/v', 'm
 
 
 # Function to get tiktok video and audio url
-async def get_tik_tok_url(link):
+async def get_tik_tok_data(link):
     async with aiohttp.ClientSession() as session:
         video_id, error = await get_tik_tok_video_id(session, link)
         if video_id is None:
             return video_id, error
 
-        video_url, error = await get_tik_tok_video(session, video_id)
-        return video_url, error
+        video_data, error = await get_tik_tok_video(session, video_id)
+        return video_data, error
 
 
 async def get_tik_tok_video_id(session, link):
@@ -57,16 +59,20 @@ async def get_tik_tok_video(session, video_id):
         url_to_request = VIDEO_REQUEST_URL.format(video_id)
         get_request = await session.get(url_to_request)
         response_json = await get_request.json()
+        api = copy.deepcopy(video_api)
 
         if response_json is not None and 'aweme_details' in response_json.keys():
+            api["thumbnail_url"] = response_json['aweme_details'][0]['video']['cover']['url_list'][-1]
+            api["title"] = response_json['aweme_details'][0]['desc']
+            api["author"] = response_json['aweme_details'][0]['author']['unique_id']
             video_info = response_json['aweme_details'][0]['video']
             if video_info['bit_rate'] and 'play_addr' in video_info['bit_rate'][0]:
                 video_urls = video_info['bit_rate'][0]['play_addr']['url_list']
             else:
                 video_urls = video_info['play_addr']['url_list']
 
-            video_url = video_urls[0]
-            return video_url, None
+            api["link"] = video_urls[0]
+            return api, None
 
     except Exception as err:
         print(err, 'Error in get_tik_tok_video\n')
@@ -119,5 +125,5 @@ async def download_file(link, chat_id):
         return None
 
 
-if __name__ == '__main__':
-    asyncio.run(get_like_video_url('https://l.likee.video/v/7v9ZcX'))
+# if __name__ == '__main__':
+#     asyncio.run(get_like_video_url('https://l.likee.video/v/7v9ZcX'))

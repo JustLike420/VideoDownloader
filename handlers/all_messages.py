@@ -4,13 +4,13 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message
 
-from keyboards.inline import button_resolutions
+from keyboards.inline import button_resolutions, link_in_button
 from main import dp
 from utils.helpers import send_message, send_video, delete_message, get_link_via_resolution
 from utils.match_urls import match_urls
-from utils.tiktok.tiktok_helpers import get_tik_tok_url
-from utils.vk.vk_main import get_vk_video
-from utils.youtube.youtube_main import get_youtube_url
+from utils.tiktok.tiktok_helpers import get_tik_tok_data
+from utils.vk.vk_main import get_vk_data
+from utils.youtube.youtube_main import get_youtube_data
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith('resolution_'))
@@ -24,7 +24,7 @@ async def chat_messages(query: types.CallbackQuery, state: FSMContext):
             lang = user["lang"]
             chat_id = user["chat_id"]
             last_message_id = user["last_message_id"]
-            await state.finish()
+            await state.reset_state()
             await delete_message(chat_id, last_message_id)
             last_message_id = await send_message(chat_id, "send_video", lang)
 
@@ -32,9 +32,10 @@ async def chat_messages(query: types.CallbackQuery, state: FSMContext):
                 await send_message(user["chat_id"], "send_video_complete", lang, last_message_id.message_id)
             else:
                 await asyncio.sleep(.5)
-                await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id)
-                await send_message(chat_id, "send_video_link", lang, args=link)
+                await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
+                                   markup=await link_in_button(link))
     except Exception as err:
+        await state.reset_state()
         print('[ERROR] in chat_messages\nException: {}\n\n'.format(err))
 
 
@@ -46,11 +47,11 @@ async def chat_messages(message: Message):
     host = await match_urls(message.text)
 
     if host == "TIKTOK":
-        data, error = await get_tik_tok_url(message.text)
+        data, error = await get_tik_tok_data(message.text)
     elif host == "YOUTUBE":
-        data, error = await get_youtube_url(message.text)
+        data, error = await get_youtube_data(message.text)
     elif host == "VK":
-        data, error = await get_vk_video(message.text)
+        data, error = await get_vk_data(message.text)
     else:
         await send_message(message.chat.id, "url_not_match", lang, last_message.message_id)
         return
