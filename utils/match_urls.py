@@ -7,5 +7,5 @@ async def match_urls(link):
         return "TIKTOK"
     if "vk" in domain:
         return "VK"
-    if "youtube" in domain:
+    if "youtube" in domain or "youtu.be" in domain:
         return "YOUTUBE"

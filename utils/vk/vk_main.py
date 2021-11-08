@@ -1,33 +1,49 @@
-from data.config import HEADERS
-from requests_html import AsyncHTMLSession
+import copy
 from urllib.parse import urlparse, parse_qs
-from bs4 import BeautifulSoup
-import requests
+
+from requests_html import AsyncHTMLSession
+
+from api.video_api import video_api
+from data.config import HEADERS
 
 session = AsyncHTMLSession()
 
 
 async def get_vk_data(link: str):
     try:
-        link = urlparse(link)
-        query = parse_qs(link.query)
-        if "m." not in link[1]:
-            host = "m." + link[1]
-        else:
-            host = link[1]
+        parse_link = urlparse(link)
+        query = parse_qs(parse_link.query)
+        link = f"{parse_link[0]}://m.vk.com"
         if query:
-            link = f"{link[0]}://{host}/{query['z'][0]}"
+            link += f"/{query['z'][0]}"
         else:
-            link = f"{link[0]}://{host}{link[2]}"
+            link += f"{parse_link[2]}"
+
         response = await session.get(link, headers=HEADERS)
-        await response.html.arender()
-        link = response.html.find("div.VideoPage__video > video > source[type='video/mp4']", first=True).attrs['src']
+        await response.html.arender(retries=60)
+        links = response.html.find("div.VideoPage__video > video > source[type='video/mp4']")
+        if not links:
+            raise Exception("Link not found.")
+        api = copy.deepcopy(video_api)
+
+        api["thumbnail_url"] = response.html.find("div.VideoPage__video > video", first=True).attrs["poster"]
+        api["title"] = response.html.find("div.VideoPageInfoRow > h2", first=True).text
+        api["author"] = response.html.find("a > div.Cell__main > div.Cell__title", first=True).text
+        for link in links:
+            url = link.attrs['src']
+            resolution = urlparse(link.attrs['src']).path.split(".")
+            api["resolutions"].append({
+                "resolution": resolution[1],
+                "url": url,
+            })
+
         # soup = BeautifulSoup(response.html.html, "lxml")
         # link = soup.select_one("video source[type='video/mp4']").attrs["src"]
         # link = urlparse(link)
         # link = f"{link[0]}://{link[1]}{link[2]}"
-        return link, None
+        return api, None
     except Exception as err:
+        print('[ERROR] in get_vk_data\nException: {}\n\n'.format(err))
         return None, "failed_get_link"
 
     # async def get_link(link):

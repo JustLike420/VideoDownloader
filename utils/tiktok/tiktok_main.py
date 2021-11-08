@@ -2,7 +2,7 @@ import os
 
 from keyboards.inline import generate_follow_markup
 
-from utils.tiktok.tiktok_helpers import download_file, get_tik_tok_url, get_like_video_url, TIKTOK_LIST
+from utils.tiktok.tiktok_helpers import download_file, get_like_video_url, TIKTOK_LIST
 from utils.help_functions import update_statistics, check_user_info, check_ad, admin_channel_to_follow
 from utils.helpers import send_message, send_video, get_chat_member
 

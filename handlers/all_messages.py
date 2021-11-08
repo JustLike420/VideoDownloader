@@ -1,42 +1,38 @@
 import asyncio
 
-from aiogram import types
-from aiogram.dispatcher import FSMContext
 from aiogram.types import Message
 
-from keyboards.inline import button_resolutions, link_in_button
+from keyboards.inline import button_resolutions
+from keyboards.inline import link_in_button
 from main import dp
-from utils.helpers import send_message, send_video, delete_message, get_link_via_resolution
+from utils.helpers import send_message, delete_message, send_video, get_link_via_resolution, get_video
 from utils.match_urls import match_urls
 from utils.tiktok.tiktok_helpers import get_tik_tok_data
 from utils.vk.vk_main import get_vk_data
 from utils.youtube.youtube_main import get_youtube_data
 
 
-@dp.callback_query_handler(lambda call: call.data.startswith('resolution_'))
-@dp.throttled(rate=3)  # Prevent flooding
-async def chat_messages(query: types.CallbackQuery, state: FSMContext):
-    try:
-        if await state.get_data():
-            async with state.proxy() as data:
-                link = await get_link_via_resolution(data["video_data"], query.data)
-                user = data["user_data"]
-            lang = user["lang"]
-            chat_id = user["chat_id"]
-            last_message_id = user["last_message_id"]
-            await state.reset_state()
-            await delete_message(chat_id, last_message_id)
-            last_message_id = await send_message(chat_id, "send_video", lang)
-
-            if await send_video(chat_id, link, lang):
-                await send_message(user["chat_id"], "send_video_complete", lang, last_message_id.message_id)
-            else:
-                await asyncio.sleep(.5)
-                await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
-                                   markup=await link_in_button(link))
-    except Exception as err:
+async def send(query, state):
+    if await state.get_data():
+        async with state.proxy() as data:
+            link = await get_link_via_resolution(data["video_data"], query.data if query is not None else None)
+            user = data["user_data"]
+        lang = user["lang"]
+        chat_id = state.chat
+        last_message_id = user["last_message_id"] if "last_message_id" in user.keys() else None
         await state.reset_state()
-        print('[ERROR] in chat_messages\nException: {}\n\n'.format(err))
+        if last_message_id is not None:
+            await delete_message(chat_id, last_message_id)
+        last_message_id = await send_message(chat_id, "download_video", lang)
+        data = await get_video(chat_id, link, lang, last_message_id.message_id)
+        await send_message(chat_id, "send_video", lang, last_message_id.message_id)
+        if data is not None:
+            if await send_video(chat_id, data):
+                await send_message(chat_id, "send_video_complete", lang, last_message_id.message_id)
+                return
+        await asyncio.sleep(.5)
+        await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
+                           markup=await link_in_button(link))
 
 
 @dp.message_handler()  # Answer to all messages
@@ -61,4 +57,5 @@ async def chat_messages(message: Message):
     # print(link)
     await send_message(message.chat.id, "search_complete", lang, last_message.message_id)
     await asyncio.sleep(1)
-    await button_resolutions(message.chat.id, "video_preview", lang, last_message.message_id, data)
+    if await button_resolutions(message.chat.id, "video_preview", lang, last_message.message_id, data):
+        await send(None, dp.get_current().current_state())

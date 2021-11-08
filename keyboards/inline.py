@@ -20,20 +20,26 @@ async def button_resolutions(chat_id, msg_str, lang, last_message_id, data):
                 InlineKeyboardButton(text=info["resolution"], callback_data=f"resolution_{info['resolution']}"))
         await delete_message(chat_id, last_message_id)
         caption = await user_msg(msg_str, lang, (data["author"], data["title"]))
+        state = dp.get_current().current_state()
+
         if "resolutions" in data.keys() and len(data["resolutions"]):
             last_message_id = await send_photo(chat_id, data["thumbnail_url"], caption=caption, parse_mode="HTML",
                                                disable_notification=True,
                                                reply_markup=keyboard)
-            state = dp.get_current().current_state()
             await state.update_data(video_data=data["resolutions"])
             await state.update_data(user_data={
-                "chat_id": chat_id,
-                "last_message_id": last_message_id.message_id,
+                "last_message_id": last_message_id.message_id if last_message_id is not None else None,
                 "lang": lang,
             })
+            return False
         else:
-            pass
+            await state.update_data(video_data=data["link"])
+            await state.update_data(user_data={
+                "last_message_id": None,
+                "lang": lang,
+            })
+            return True
 
     except Exception as err:
         print('[ERROR] in button_resolutions\nException: {}\n\n'.format(err))
-        return None
+        return False

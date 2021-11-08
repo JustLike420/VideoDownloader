@@ -1,4 +1,8 @@
 # coding=utf-8
+import random
+
+import aiohttp
+
 from data.messages import msg_dict
 from main import bot
 
@@ -48,11 +52,47 @@ async def get_chat_member(channel_id, chat_id):
         return None
 
 
-# Function to send a video
-async def send_video(chat_id, link, lang, last_message_id=None):
+async def get_video(chat_id, link, lang, last_message_id=None):
     try:
+        chunk_size = 5 * 2 ** 20  # MB
+        async with aiohttp.ClientSession(timeout=None) as session:
+            async with session.get(link, timeout=None) as response:
+                content_length = response.content_length
+                green = ["🟢", "🟩", "💚", "🈯"]
+                red = ["🔴", "🟥", "❤️", "🆘"]
+                index = random.randint(0, len(green) - 1)
+                await bot.edit_message_text(f"Загрузка: {red[index] * 10} 0%", chat_id,
+                                            last_message_id)
+                data = bytearray()
+                last_percent = 0
+                flag = True
+                while flag:
+                    ch = 0
+                    while ch < chunk_size:
+                        chunk = await response.content.read(chunk_size)
+                        if not chunk:
+                            flag = False
+                            break
+                        data.extend(chunk)
+                        ch += len(chunk)
+                    percent = int(100 * len(data) / content_length // 10 * 10)
+                    if percent > last_percent:
+                        last_percent = percent
+                        text = f"Загрузка: {''.join([green[index] for x in range(last_percent // 10)])}{''.join([red[index] for x in range(10 - last_percent // 10)])} {last_percent}%"
+                        await bot.edit_message_text(text,
+                                                    chat_id,
+                                                    last_message_id)
+                return data
+    except Exception as err:
+        print('[ERROR] in get_video\nException: {}\n\n'.format(err))
+        return None
 
-        await bot.send_video(chat_id, link, disable_notification=True)
+
+# Function to send a video
+async def send_video(chat_id, data=None, last_message_id=None):
+    try:
+        await bot.send_video(chat_id, data, disable_notification=True,
+                             supports_streaming=True)
         return True
     except Exception as err:
         print('[ERROR] in send_video\nException: {}\n\n'.format(err))
@@ -83,6 +123,9 @@ async def user_msg(message_str, lang, args=None):
 
 
 async def get_link_via_resolution(data, callback):
-    for info in data:
-        if info["resolution"] in callback:
-            return info["url"]
+    if callback is not None:
+        for info in data:
+            if info["resolution"] in callback:
+                return info["url"]
+    else:
+        return data
