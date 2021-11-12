@@ -2,9 +2,10 @@
 import random
 
 import aiohttp
+from telethon.tl.types import DocumentAttributeVideo
 
 from data.messages import msg_dict
-from main import bot
+from main import bot, auth
 
 
 # Function to send waiting message
@@ -61,12 +62,13 @@ async def get_video(chat_id, link, lang, last_message_id=None):
                 green = ["🟢", "🟩", "💚", "🈯"]
                 red = ["🔴", "🟥", "❤️", "🆘"]
                 index = random.randint(0, len(green) - 1)
-                await bot.edit_message_text(f"Загрузка: {red[index] * 10} 0%", chat_id,
+                await bot.edit_message_text(f"Отправка: {red[index] * 10} 0%", chat_id,
                                             last_message_id)
-                data = bytearray()
                 last_percent = 0
                 flag = True
+                _data = 0
                 while flag:
+                    data = bytearray()
                     ch = 0
                     while ch < chunk_size:
                         chunk = await response.content.read(chunk_size)
@@ -75,23 +77,37 @@ async def get_video(chat_id, link, lang, last_message_id=None):
                             break
                         data.extend(chunk)
                         ch += len(chunk)
-                    percent = int(100 * len(data) / content_length // 10 * 10)
+                        _data += len(chunk)
+                    percent = int(100 * _data / content_length // 10 * 10)
                     if percent > last_percent:
                         last_percent = percent
-                        text = f"Загрузка: {''.join([green[index] for x in range(last_percent // 10)])}{''.join([red[index] for x in range(10 - last_percent // 10)])} {last_percent}%"
+                        text = f"Отправка: {''.join([green[index] for x in range(last_percent // 10)])}{''.join([red[index] for x in range(10 - last_percent // 10)])} {last_percent}%"
                         await bot.edit_message_text(text,
                                                     chat_id,
                                                     last_message_id)
-                return data
+                    yield data
     except Exception as err:
         print('[ERROR] in get_video\nException: {}\n\n'.format(err))
-        return None
 
 
 # Function to send a video
-async def send_video(chat_id, data=None, last_message_id=None):
+async def send_video(chat_id, link, lang, last_message_id):
     try:
-        await bot.send_video(chat_id, data, disable_notification=True,
+        # with open("test.mp4", "ab") as file:
+        #     async for data in get_video(chat_id, link, lang, last_message_id):
+        #         file.write(data)
+        # async with aiohttp.ClientSession(timeout=None) as session:
+        #     async with session.post(
+        #             'https://api.telegram.org/bot2066624709:AAEPrqlr-ElO7QBq1MUCwvIL-S7v0rU1g0Q/sendVideo',
+        #             data=get_video(chat_id, link, lang, last_message_id), timeout=None) as response:
+        #         response
+
+        await bot.send_chat_action(chat_id, "upload_video")
+        # await auth.send_file(chat_id, file=get_video(chat_id, link, lang, last_message_id),
+        #                      supports_streaming=True,
+        #                      attributes=(DocumentAttributeVideo(0, 0, 0),))
+        await bot.send_video(chat_id, video=get_video(chat_id, link, lang, last_message_id),
+                             disable_notification=True,
                              supports_streaming=True)
         return True
     except Exception as err:
