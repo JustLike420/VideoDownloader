@@ -128,4 +128,13 @@ async def get_link_via_resolution(data, callback):
             if info["resolution"] in callback:
                 return info["url"]
     else:
-        return data
+        return
+
+
+# проверка подписки на канал
+def check_sub_channel(chat_member):
+    print(chat_member['status'])
+    if chat_member['status'] != 'left':
+        return True
+    else:
+        return False

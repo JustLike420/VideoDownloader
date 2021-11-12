@@ -43,3 +43,9 @@ async def button_resolutions(chat_id, msg_str, lang, last_message_id, data):
     except Exception as err:
         print('[ERROR] in button_resolutions\nException: {}\n\n'.format(err))
         return False
+
+btnUrlChannel = InlineKeyboardButton(text='КАНАЛ #1 ➡', url='https://t.me/IT_wworld')
+btnDoneSub = InlineKeyboardButton(text='✅ Я подписался', callback_data="sub_channeldone")
+checkSubMenu = InlineKeyboardMarkup(row_width=1)
+checkSubMenu.insert(btnUrlChannel)
+checkSubMenu.insert(btnDoneSub)
