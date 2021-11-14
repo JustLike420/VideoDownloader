@@ -2,9 +2,9 @@ import asyncio
 
 from aiogram.types import Message
 
-from keyboards.inline import button_resolutions
+from keyboards.inline import button_resolutions, checkSubMenu
 from keyboards.inline import link_in_button
-from main import dp
+from main import dp, bot
 from utils.helpers import send_message, delete_message, send_video, get_link_via_resolution
 from utils.match_urls import match_urls
 from utils.tiktok.tiktok_helpers import get_tik_tok_data
@@ -25,7 +25,8 @@ async def send(query, state):
             await delete_message(chat_id, last_message_id)
         last_message_id = await send_message(chat_id, "send_video", lang)
         if await send_video(chat_id, link, lang, last_message_id.message_id):
-            await send_message(chat_id, "send_video_complete", lang, last_message_id.message_id)
+            # await send_message(chat_id, "send_video_complete", lang, last_message_id.message_id)
+            await send_message(chat_id, 'Adsub', lang, last_message_id.message_id, markup=checkSubMenu)
             return
         await asyncio.sleep(.5)
         await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
