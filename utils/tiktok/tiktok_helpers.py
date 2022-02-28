@@ -1,4 +1,3 @@
-import asyncio
 import copy
 
 import aiohttp
@@ -59,19 +58,18 @@ async def get_tik_tok_video(session, video_id):
         url_to_request = VIDEO_REQUEST_URL.format(video_id)
         get_request = await session.get(url_to_request)
         response_json = await get_request.json()
-        api = copy.deepcopy(video_api)
-
+        api = video_api()
         if response_json is not None and 'aweme_details' in response_json.keys():
-            api["thumbnail_url"] = response_json['aweme_details'][0]['video']['cover']['url_list'][-1]
-            api["title"] = response_json['aweme_details'][0]['desc']
-            api["author"] = response_json['aweme_details'][0]['author']['unique_id']
+            api.thumbnail_url = response_json['aweme_details'][0]['video']['cover']['url_list'][-1]
+            api.title = response_json['aweme_details'][0]['desc']
+            api.author = response_json['aweme_details'][0]['author']['unique_id']
             video_info = response_json['aweme_details'][0]['video']
             if video_info['bit_rate'] and 'play_addr' in video_info['bit_rate'][0]:
                 video_urls = video_info['bit_rate'][0]['play_addr']['url_list']
             else:
                 video_urls = video_info['play_addr']['url_list']
 
-            api["link"] = video_urls[0]
+            api.link = video_urls[0]
             return api, None
 
     except Exception as err:

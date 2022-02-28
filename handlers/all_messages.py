@@ -26,11 +26,11 @@ async def send(query, state):
         last_message_id = await send_message(chat_id, "send_video", lang)
         if await send_video(chat_id, link, lang, last_message_id.message_id):
             # await send_message(chat_id, "send_video_complete", lang, last_message_id.message_id)
-            await send_message(chat_id, 'Adsub', lang, last_message_id.message_id, markup=checkSubMenu)
-            return
-        await asyncio.sleep(.5)
-        await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
-                           markup=await link_in_button(link))
+            await send_message(chat_id, "Adsub", lang, last_message_id.message_id, markup=checkSubMenu)
+        else:
+            await asyncio.sleep(.5)
+            await send_message(chat_id, "failed_send_video", lang, last_message_id.message_id,
+                               markup=await link_in_button(link))
 
 
 @dp.message_handler()  # Answer to all messages

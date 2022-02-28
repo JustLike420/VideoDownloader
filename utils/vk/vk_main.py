@@ -1,4 +1,3 @@
-import copy
 from urllib.parse import urlparse, parse_qs
 
 from requests_html import AsyncHTMLSession
@@ -19,25 +18,31 @@ async def get_vk_data(link: str):
         else:
             link += f"{parse_link[2]}"
 
-        response = await session.get(link, headers=HEADERS)
-        await response.html.arender(retries=60)
-        links = response.html.find("div.VideoPage__video > video > source[type='video/mp4']")
+        response = await session.get(link, headers={
+            "user-agent": "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+        })
+        await response.html.arender(timeout=100)
+        links = response.html.find("source[type='video/mp4']")
         if not links:
             raise Exception("Link not found.")
-        api = copy.deepcopy(video_api)
+        api = video_api()
 
-        api["thumbnail_url"] = response.html.find("div.VideoPage__video > video", first=True).attrs["poster"]
-        api["title"] = response.html.find("div.VideoPageInfoRow > h2", first=True).text
-        api["author"] = response.html.find("a > div.Cell__main > div.Cell__title", first=True).text
+        api.thumbnail_url = response.html.find("div.VideoPage__video > video", first=True).attrs["poster"]
+        api.title = response.html.find("div.VideoPageInfoRow > h2", first=True).text
+        api.author = response.html.find("a > div.Cell__main > div.Cell__title", first=True).text
         for link in links:
             url = link.attrs['src']
-            resolution = urlparse(link.attrs['src']).path.split(".")
-            api["resolutions"].append({
-                "resolution": resolution[1],
-                "url": url,
-            })
+            if urlparse(link.attrs['src']).path != "/":
+                resolution = urlparse(link.attrs['src']).path.split(".")[1]
+                api.resolutions.append({
+                    "resolution": resolution,
+                    "url": url,
+                })
+            else:
+                api.link = url
+                break
 
-        # soup = BeautifulSoup(response.html.html, "lxml")
+                # soup = BeautifulSoup(response.html.html, "lxml")
         # link = soup.select_one("video source[type='video/mp4']").attrs["src"]
         # link = urlparse(link)
         # link = f"{link[0]}://{link[1]}{link[2]}"

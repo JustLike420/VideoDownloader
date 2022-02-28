@@ -2,10 +2,9 @@
 import random
 
 import aiohttp
-from telethon.tl.types import DocumentAttributeVideo
 
 from data.messages import msg_dict
-from main import bot, auth
+from main import bot
 
 
 # Function to send waiting message
@@ -77,6 +76,7 @@ async def get_video(chat_id, link, lang, last_message_id=None):
                             break
                         data.extend(chunk)
                         ch += len(chunk)
+                        print(data)
                         _data += len(chunk)
                     percent = int(100 * _data / content_length // 10 * 10)
                     if percent > last_percent:
