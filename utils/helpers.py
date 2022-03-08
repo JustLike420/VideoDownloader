@@ -5,6 +5,7 @@ import aiohttp
 
 from data.messages import msg_dict
 from main import bot
+from data.config import HEADERS
 
 
 # Function to send waiting message
@@ -30,7 +31,7 @@ async def send_photo(chat_id, photo, caption=None, parse_mode=None, caption_enti
                      allow_sending_without_reply=None, reply_markup=None):
     try:
         return await bot.send_photo(chat_id, photo, caption, parse_mode, caption_entities, disable_notification,
-                                    reply_to_message_id, allow_sending_without_reply, reply_markup)
+                                    reply_to_message_id, allow_sending_without_reply, reply_markup=reply_markup)
     except Exception as err:
         print('[ERROR] in send_photo\nException: {}\n\n'.format(err))
         return None
@@ -56,36 +57,37 @@ async def get_video(chat_id, link, lang, last_message_id=None):
     try:
         chunk_size = 5 * 2 ** 20  # MB
         async with aiohttp.ClientSession(timeout=None) as session:
-            async with session.get(link, timeout=None) as response:
+            async with session.get(link, timeout=None, allow_redirects=True) as response:
                 content_length = response.content_length
-                green = ["🟢", "🟩", "💚", "🈯"]
-                red = ["🔴", "🟥", "❤️", "🆘"]
-                index = random.randint(0, len(green) - 1)
-                await bot.edit_message_text(f"Отправка: {red[index] * 10} 0%", chat_id,
-                                            last_message_id)
-                last_percent = 0
-                flag = True
-                _data = 0
-                while flag:
-                    data = bytearray()
-                    ch = 0
-                    while ch < chunk_size:
-                        chunk = await response.content.read(chunk_size)
-                        if not chunk:
-                            flag = False
-                            break
-                        data.extend(chunk)
-                        ch += len(chunk)
-                        print(data)
-                        _data += len(chunk)
-                    percent = int(100 * _data / content_length // 10 * 10)
-                    if percent > last_percent:
-                        last_percent = percent
-                        text = f"Отправка: {''.join([green[index] for x in range(last_percent // 10)])}{''.join([red[index] for x in range(10 - last_percent // 10)])} {last_percent}%"
-                        await bot.edit_message_text(text,
-                                                    chat_id,
-                                                    last_message_id)
-                    yield data
+                if content_length / 1024 / 1024 < 50:
+                    green = ["🟢", "🟩", "💚", "🈯"]
+                    red = ["🔴", "🟥", "❤️", "🆘"]
+                    index = random.randint(0, len(green) - 1)
+                    await bot.edit_message_text(f"Отправка: {red[index] * 10} 0%", chat_id,
+                                                last_message_id)
+                    last_percent = 0
+                    flag = True
+                    _data = 0
+                    while flag:
+                        data = bytearray()
+                        ch = 0
+                        while ch < chunk_size:
+                            chunk = await response.content.read(chunk_size)
+                            if not chunk:
+                                flag = False
+                                break
+                            data.extend(chunk)
+                            ch += len(chunk)
+                            _data += len(chunk)
+                        percent = int(100 * _data / content_length // 10 * 10)
+                        if percent > last_percent:
+                            last_percent = percent
+                            text = f"Отправка: {''.join([green[index] for x in range(last_percent // 10)])}{''.join([red[index] for x in range(10 - last_percent // 10)])} {last_percent}%"
+                            await bot.edit_message_text(text,
+                                                        chat_id,
+                                                        last_message_id)
+                        yield data
+
     except Exception as err:
         print('[ERROR] in get_video\nException: {}\n\n'.format(err))
 

@@ -20,7 +20,7 @@ async def send(query, state):
         lang = user["lang"]
         chat_id = state.chat
         last_message_id = user["last_message_id"] if "last_message_id" in user.keys() else None
-        await state.reset_state()
+        await state.reset_data()
         if last_message_id is not None:
             await delete_message(chat_id, last_message_id)
         last_message_id = await send_message(chat_id, "send_video", lang)

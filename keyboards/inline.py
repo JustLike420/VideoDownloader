@@ -15,10 +15,11 @@ async def link_in_button(link):
 
 async def button_resolutions(chat_id, msg_str, lang, last_message_id, data: video_api):
     try:
-        keyboard = InlineKeyboardMarkup()
+        keyboard = InlineKeyboardMarkup(row_width=1)
         for info in data.resolutions:
             keyboard.add(
-                InlineKeyboardButton(text=info["resolution"], callback_data=f"resolution_{info['resolution']}"))
+                InlineKeyboardButton(text=info["resolution"], callback_data=f"resolution_{info['resolution']}")
+            )
         await delete_message(chat_id, last_message_id)
         caption = await user_msg(msg_str, lang, (data.author, data.title))
         state = dp.get_current().current_state()

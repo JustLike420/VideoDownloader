@@ -1,5 +1,3 @@
-import copy
-
 from pytube import YouTube
 
 from api.video_api import video_api
@@ -14,21 +12,18 @@ from api.video_api import video_api
 async def get_youtube_data(link):
     try:
         youtube = YouTube(link)
-        api = copy.deepcopy(video_api)
-        api["thumbnail_url"] = youtube.thumbnail_url
-        api["title"] = youtube.title
-        import collections
-
-        # youtube = youtube.streams.filter(progressive=True, file_extension="mp4").desc().fmt_streams
-        youtube = youtube.streaming_data['formats']
+        api = video_api()
+        api.thumbnail_url = youtube.thumbnail_url
+        api.title = youtube.title
+        api.author = youtube.author
+        youtube = youtube.streams.filter(progressive=True, file_extension="mp4").desc().fmt_streams
         for data in youtube:
-            api["resolutions"].append(
+            api.resolutions.append(
                 {
-                    "resolution": data['qualityLabel'],
-                    "url": data['url'],
+                    "resolution": data.resolution,
+                    "url": data.url,
                 }
             )
-        api["resolutions"].reverse()
         return api, None
     except Exception as err:
         print('[ERROR] in button_resolutions\nException: {}\n\n'.format(err))

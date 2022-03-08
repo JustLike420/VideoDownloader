@@ -18,9 +18,7 @@ async def get_vk_data(link: str):
         else:
             link += f"{parse_link[2]}"
 
-        response = await session.get(link, headers={
-            "user-agent": "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
-        })
+        response = await session.get(link, headers=HEADERS)
         await response.html.arender(timeout=100)
         links = response.html.find("source[type='video/mp4']")
         if not links:
